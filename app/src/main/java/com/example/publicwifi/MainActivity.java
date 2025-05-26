@@ -1,6 +1,5 @@
 package com.example.publicwifi;
 
-import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -21,7 +20,6 @@ import com.example.publicwifi.model.WifiData;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.naver.maps.geometry.LatLng;
-import com.naver.maps.geometry.LatLngBounds;
 import com.naver.maps.map.CameraAnimation;
 import com.naver.maps.map.CameraPosition;
 import com.naver.maps.map.CameraUpdate;
@@ -35,12 +33,12 @@ import com.naver.maps.map.overlay.Marker;
 import com.naver.maps.map.overlay.OverlayImage;
 import com.naver.maps.map.util.FusedLocationSource;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 public class MainActivity extends AppCompatActivity
         implements OnMapReadyCallback {
-    private Button btn1, btn2, btn3;
     private NaverMap naverMap;
     private static final int LOCATION_PERMISSION_REQUEST_CODE = 1000;
     private static final int MARKER_MIN_ZOOM = 11;
@@ -48,7 +46,6 @@ public class MainActivity extends AppCompatActivity
     private LatLng lastLongPress; // 마커 추가하기위한 좌표
 
     MyDBHelper myHelper;
-    SQLiteDatabase sqlDB;
 
     FloatingActionButton fab;
 
@@ -66,41 +63,6 @@ public class MainActivity extends AppCompatActivity
         myHelper = new MyDBHelper(this);
         FragmentManager fm = getSupportFragmentManager();
 
-//        btn1 = findViewById(R.id.btn1);
-//        btn2 = findViewById(R.id.btn2);
-//        btn3 = findViewById(R.id.btn3);
-
-//        // 화면움직임 + 여러가지 화면 세팅 가능
-//        btn1.setOnClickListener(new View.OnClickListener() {
-//            @Override
-//            public void onClick(View v) {
-//                if (naverMap == null) return;  // 아직 준비 안 됐으면 무시
-//                CameraPosition cameraPosition = new CameraPosition(
-//                        new LatLng(35.80883, 127.14799), // 대상 지점
-//                        16, // 줌 레벨
-//                        20, // 기울임 각도
-//                        180 // 베어링 각도
-//                );
-//                // 카메라만 부드럽게 이동
-//                naverMap.moveCamera(CameraUpdate.toCameraPosition(cameraPosition));
-//            }
-//        });
-
-//        // 다른 세팅은 그대로, 화면만 움직임 + 애니메이션 가능 (duration은 없어도됨)
-//        btn2.setOnClickListener(new View.OnClickListener() {
-//            @Override
-//            public void onClick(View v) {
-//                CameraUpdate cameraUpdate = CameraUpdate.scrollTo(new LatLng(35.8068378,127.1195137)).animate(CameraAnimation.Easing, 1000)
-//                        .finishCallback(() -> {
-//                            Toast.makeText(MainActivity.this, "카메라 이동 완료", Toast.LENGTH_SHORT).show();
-//
-//                        })
-//                        .cancelCallback(()-> {
-//                            Toast.makeText(MainActivity.this, "카메라 이동 취소", Toast.LENGTH_SHORT).show();
-//                        });
-//                naverMap.moveCamera(cameraUpdate);
-//            }
-//        });
 
 
         // 1) FusedLocationSource 인스턴스 생성 (requestCode는 아무 값이나 정해두면 됩니다)
@@ -132,24 +94,7 @@ public class MainActivity extends AppCompatActivity
     }
 
 
-
-
-
-//    // 하나의 좌표
-//    LatLng southWest = new LatLng(31.43, 122.37);
-//    LatLng northEast = new LatLng(44.35, 132);
-//    LatLngBounds bounds1 = new LatLngBounds(southWest, northEast);
-//
-//    // 여러 좌표 포함하는 MBR 만들기
-//    LatLngBounds bounds2 = new LatLngBounds.Builder()
-//            .include(new LatLng(35.80883, 127.14799))
-//            .include(new LatLng(35.8068378, 127.1195137))
-//            .include(new LatLng(35.7968626, 127.1143079))
-//            .include(new LatLng(35.7980662, 127.1403211))
-//            .include(new LatLng(35.812153, 127.1198025))
-//            .build();
-
-    /*
+    /**
      * 권한 설정
      */
     private FusedLocationSource locationSource;
@@ -173,10 +118,13 @@ public class MainActivity extends AppCompatActivity
     @UiThread
     @Override
     public void onMapReady(@NonNull NaverMap naverMap) {
-        /*
+        /**
          * 맵이 완전히 준비된 후 할 일
          */
+
         this.naverMap = naverMap;
+        addDummyMarkers();
+        addUserMarkers();
         naverMap.setLocationSource(locationSource);
         // 기본 트래킹 모드 설정 (권한이 있으면 위치 표시, 없으면 추적 안 함)
         naverMap.setLocationTrackingMode(LocationTrackingMode.Follow);
@@ -215,8 +163,6 @@ public class MainActivity extends AppCompatActivity
         naverMap.setOnMapLongClickListener((pointF, latLng) -> {
             // 1) 저장해 둔 최근 long-press 위치
             lastLongPress = latLng;
-            // 2) 추가 버튼 보이기
-//            showAddButton();
 
             showWifiInputDialog(latLng.latitude, latLng.longitude);
         });
@@ -270,16 +216,16 @@ public class MainActivity extends AppCompatActivity
 //        naverMap.setSymbolPerspectiveRatio(0); // 심벌 원근 효과, 지도를 기울일 경우 멀리있는것은 작게보임
 
 
-        addMarker();
+
     }
 
 
     /**
-     * 와이파이 목록
+     * 와이파이 목록 조회
      */
     private void showWifiListDialog() {
-        MyDBHelper dbHelper = new MyDBHelper(this);
-        List<WifiData> wifiList = dbHelper.getAllWifi();
+//        MyDBHelper dbHelper = new MyDBHelper(this);
+        List<WifiData> wifiList = myHelper .getAllWifi();
 
         if (wifiList.isEmpty()) {
             Toast.makeText(this, "저장된 와이파이가 없습니다", Toast.LENGTH_SHORT).show();
@@ -291,30 +237,72 @@ public class MainActivity extends AppCompatActivity
 
         final AlertDialog[] dialog = new AlertDialog[1];
 
+        // 1) 지도 마커 갱신 로직을 Runnable 으로 정의
+        Runnable refreshMarkers = () -> {
+            // (a) 기존 userMarkers만 지도에서 제거
+            for (Marker m : userMarkers) {
+                m.setMap(null);
+            }
+            userMarkers.clear();
+
+            // (b) DB에서 다시 읽어서 사용자 마커만 다시 그리기
+            addUserMarkers();
+
+            // (c) 리스트가 비어 있으면 다이얼로그 닫기
+            if (wifiList.isEmpty() && dialog[0] != null) {
+                dialog[0].dismiss();
+            }
+        };
+
+        // 2) 어댑터에 Runnable 전달
         WifiAdapter adapter = new WifiAdapter(
                 this,
                 wifiList,
-                dbHelper,
-                () -> {
-                    if (wifiList.isEmpty()) dialog[0].dismiss();
-                },
+                myHelper ,
+                refreshMarkers,        // ← 여기!
                 selected -> {
                     LatLng target = new LatLng(selected.latitude, selected.longitude);
                     if (naverMap != null) {
 
                         CameraUpdate cameraUpdate = CameraUpdate.scrollTo(target).animate(CameraAnimation.Easing, 1000)
-                        .finishCallback(() -> {
-                            Toast.makeText(MainActivity.this, "카메라 이동 완료", Toast.LENGTH_SHORT).show();
+                                .finishCallback(() -> {
+                                    Toast.makeText(MainActivity.this, "카메라 이동 완료", Toast.LENGTH_SHORT).show();
 
-                        }).cancelCallback(()-> {
-                            Toast.makeText(MainActivity.this, "카메라 이동 취소", Toast.LENGTH_SHORT).show();
-                        });
+                                }).cancelCallback(()-> {
+                                    Toast.makeText(MainActivity.this, "카메라 이동 취소", Toast.LENGTH_SHORT).show();
+                                });
                         naverMap.moveCamera(cameraUpdate);
                         Toast.makeText(this, selected.name + " 위치로 이동", Toast.LENGTH_SHORT).show();
                     }
                     dialog[0].dismiss();
                 }
         );
+
+
+//        WifiAdapter adapter = new WifiAdapter(
+//                this,
+//                wifiList,
+//                dbHelper,
+//                () -> {
+//                    if (wifiList.isEmpty()) dialog[0].dismiss();
+//                },
+//                selected -> {
+//                    LatLng target = new LatLng(selected.latitude, selected.longitude);
+//                    if (naverMap != null) {
+//
+//                        CameraUpdate cameraUpdate = CameraUpdate.scrollTo(target).animate(CameraAnimation.Easing, 1000)
+//                        .finishCallback(() -> {
+//                            Toast.makeText(MainActivity.this, "카메라 이동 완료", Toast.LENGTH_SHORT).show();
+//
+//                        }).cancelCallback(()-> {
+//                            Toast.makeText(MainActivity.this, "카메라 이동 취소", Toast.LENGTH_SHORT).show();
+//                        });
+//                        naverMap.moveCamera(cameraUpdate);
+//                        Toast.makeText(this, selected.name + " 위치로 이동", Toast.LENGTH_SHORT).show();
+//                    }
+//                    dialog[0].dismiss();
+//                }
+//        );
 
         listView.setAdapter(adapter);
 
@@ -323,11 +311,15 @@ public class MainActivity extends AppCompatActivity
                 .setView(dialogView)
                 .setNegativeButton("닫기", null)
                 .setPositiveButton("전체 삭제", (d, i) -> {
-                    dbHelper.deleteAllWifi();
+                    myHelper .deleteAllWifi();
                     wifiList.clear();
                     adapter.notifyDataSetChanged();
+
+                    // 전체 삭제
+                    refreshMarkers.run();
                     Toast.makeText(this, "모든 와이파이를 삭제했습니다", Toast.LENGTH_SHORT).show();
                     dialog[0].dismiss();
+
                 })
                 .create();
 
@@ -335,91 +327,93 @@ public class MainActivity extends AppCompatActivity
     }
 
 
-    /*
-     * 공공 wifi 넣기
+    /**
+     * 와이파이 마커 넣기
      */
-    List<Map<String, Object>> dummy;
-    private void addMarker() {
-        OverlayImage markerImage = OverlayImage.fromResource(R.drawable.wifi_photoroom);
+    private final List<Marker> dummyMarkers = new ArrayList<>();
+    private final List<Marker> userMarkers  = new ArrayList<>();
 
-        // 1. 더미 데이터
-        dummy = List.of(
-                Map.of("latitude", 35.80883,   "longitude", 127.14799,  "SSID", "Public WiFi Free", "location", "전주시립도서관 (동완산동)"),
-                Map.of("latitude", 35.79145,   "longitude", 127.13488,  "SSID", "Public WiFi Free", "location", "평화도서관 (평화동2가)"),
-                Map.of("latitude", 35.8176718, "longitude", 127.1015345,"SSID", "hyoja4",           "location", "우전로 259")
+    // 1) 더미 마커만 그리는 메서드
+    private void addDummyMarkers() {
+        // 기존 더미 마커 제거
+        for (Marker m : dummyMarkers) m.setMap(null);
+        dummyMarkers.clear();
+
+        // 화면에 띄울 더미 데이터
+        List<Map<String, Object>> dummy = List.of(
+                Map.of("latitude", 35.80883,   "longitude", 127.14799,  "SSID", "Public WiFi Free", "location", "전주시립도서관 (동완산동)", "manager_center","전주시청","contact","010-1234-4567"),
+                Map.of("latitude", 35.79145,   "longitude", 127.13488,  "SSID", "Public WiFi Free", "location", "평화도서관 (평화동2가)","manager_center","전주시청","contact","010-1234-4567"),
+                Map.of("latitude", 35.8176718, "longitude", 127.1015345,"SSID", "hyoja4",           "location", "우전로 259","manager_center","전주시청","contact","010-1234-4567")
         );
 
-        // 1-1. 더미 마커 표시
-        for (Map<String, Object> item : dummy) {
-            double lat = (Double) item.get("latitude");
-            double lng = (Double) item.get("longitude");
-
-            Marker marker = new Marker();
-            marker.setPosition(new LatLng(lat, lng));
-            marker.setIcon(markerImage);
-            marker.setWidth(MARKER_SIZE);
-            marker.setHeight(MARKER_SIZE);
-
-            marker.setOnClickListener(overlay -> {
+        OverlayImage icon = OverlayImage.fromResource(R.drawable.wifi_photoroom);
+        for (Map<String,Object> item : dummy) {
+            double lat = (Double)item.get("latitude");
+            double lng = (Double)item.get("longitude");
+            Marker m = new Marker();
+            m.setPosition(new LatLng(lat,lng));
+            m.setIcon(icon);
+            m.setWidth(MARKER_SIZE);
+            m.setHeight(MARKER_SIZE);
+            m.setMap(naverMap);
+            m.setOnClickListener(overlay -> {
                 showWifiBottomSheet(
                         item.get("SSID").toString(), // 와이파이이름
                         item.get("location").toString(), // 와이파이 주소
-                        "85 Mbps",    // 더미 속도
+                        item.get("manager_center").toString(),    // 관리기관
                         "비밀번호 없음",      // 비밀번호
-                        "350m"        // 더미 거리
+                        "관리자번호 - "+item.get("contact").toString()        // 관리자 번호
                 );
                 return true;
             });
-
-            marker.setMap(naverMap);
-        }
-
-        // 2. SQLite 사용자 저장 Wi-Fi 마커 추가
-        List<WifiData> userWifiList = myHelper.getAllWifi(); // 이미 선언된 dbHelper 사용
-
-        OverlayImage markerImage2 = OverlayImage.fromResource(R.drawable.wifi_removebg);
-
-        for (WifiData wifi : userWifiList) {
-            Marker marker = new Marker();
-            marker.setPosition(new LatLng(wifi.latitude, wifi.longitude));
-            marker.setIcon(markerImage2);
-            marker.setWidth(MARKER_SIZE);
-            marker.setHeight(MARKER_SIZE);
-
-            marker.setOnClickListener(overlay -> {
-                showWifiBottomSheet(
-                        wifi.name,
-                        wifi.description,
-                        "사용자 등록",
-                        wifi.password,
-                        wifi.name  // 마지막 인자: 이름 또는 임시 거리
-                );
-                return true;
-            });
-
-            marker.setMap(naverMap);
+            dummyMarkers.add(m);
         }
     }
 
+    // 2) 사용자 마커만 그리는 메서드
+    private void addUserMarkers() {
+
+        for (Marker m : userMarkers) {
+            m.setMap(null);
+        }
+        userMarkers.clear();
+
+        OverlayImage icon = OverlayImage.fromResource(R.drawable.wifi_removebg);
+        for (WifiData w : myHelper.getAllWifi()) {
+            Marker m = new Marker();
+            m.setPosition(new LatLng(w.latitude,w.longitude));
+            m.setIcon(icon);
+            m.setWidth(MARKER_SIZE);
+            m.setHeight(MARKER_SIZE);
+            m.setMap(naverMap);
+            m.setOnClickListener(o -> {
+                showWifiBottomSheet(w.name, w.description, "사용자 등록", w.password, w.name);
+                return true;
+            });
+            userMarkers.add(m);
+        }
+    }
 
     /**
      * 와이파이 상세 정보 보여주기
      */
-    private void showWifiBottomSheet(String ssid,
-                                     String location,
-                                     String speed,
-                                     String password,
-                                     String name) {
+    private void showWifiBottomSheet(String ssid, // 와이파이이름
+                                     String location,// 와이파이 주소
+                                     String center,// 관리기관
+                                     String password, // 비밀번호
+                                     String description // 관리자 번호 or 세부 셜명
+    ) {
         // 레이아웃 인플레이트
         View sheet = getLayoutInflater()
                 .inflate(R.layout.bottom_sheet_wifi, null);
 
+
         // 데이터 바인딩
-        ((TextView) sheet.findViewById(R.id.tv_ssid)).setText("ssid "+ssid);
-        ((TextView) sheet.findViewById(R.id.tv_location)).setText("location "+location);
-        ((TextView) sheet.findViewById(R.id.tv_speed)).setText("예상 속도: " + speed);
-        ((TextView) sheet.findViewById(R.id.password)).setText("password: " + password);
-        ((TextView) sheet.findViewById(R.id.name)).setText("position: ");
+        ((TextView) sheet.findViewById(R.id.tv_ssid)).setText(ssid);
+        ((TextView) sheet.findViewById(R.id.tv_location)).setText("주소: "+location);
+        ((TextView) sheet.findViewById(R.id.center)).setText("관리자: "+center);
+        ((TextView) sheet.findViewById(R.id.password)).setText("비밀번호: "+password);
+        ((TextView) sheet.findViewById(R.id.description)).setText("세부사항: "+description);
 
         Button btnDir = sheet.findViewById(R.id.btn_direction);
         Button btnDetails = sheet.findViewById(R.id.btn_details);
@@ -441,7 +435,7 @@ public class MainActivity extends AppCompatActivity
     }
 
     /**
-     * 와이파이 추가하기 창
+     * 와이파이 추가하기
      */
     private void showWifiInputDialog(double lat, double lng) {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
@@ -466,6 +460,23 @@ public class MainActivity extends AppCompatActivity
             dbHelper.saveWifi(wifiName, password, lat, lng, description);
 
             Toast.makeText(this, "와이파이 저장됨!", Toast.LENGTH_SHORT).show();
+
+            // 2) naverMap 이 준비된 상태라면, 바로 마커 추가
+            if (naverMap != null) {
+                Marker newMarker = new Marker();
+                newMarker.setPosition(new LatLng(lat, lng));
+                newMarker.setIcon(OverlayImage.fromResource(R.drawable.wifi_removebg));
+                newMarker.setWidth(MARKER_SIZE);
+                newMarker.setHeight(MARKER_SIZE);
+                // 클릭 시 BottomSheet 띄우는 로직도 동일하게
+                newMarker.setOnClickListener(overlay -> {
+                    showWifiBottomSheet(wifiName, description, "스피드", password, wifiName);
+                    return true;
+                });
+                newMarker.setMap(naverMap);
+                userMarkers.add(newMarker);
+
+            }
         });
 
         builder.setNegativeButton("취소", (dialog, which) -> dialog.cancel());
