@@ -40,6 +40,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"/>
     </LinearLayout>
+
     <LinearLayout
         android:layout_marginTop="8dp"
         android:orientation="horizontal"
@@ -51,8 +52,8 @@
             android:layout_width="30dp"
             android:layout_height="30dp"/>
         <TextView
-            android:id="@+id/position"
-            android:text="덕진구"
+            android:id="@+id/name"
+            android:text="전북대 와이파이"
             android:layout_marginStart="8dp"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"/>
@@ -68,8 +69,8 @@
             android:layout_width="30dp"
             android:layout_height="30dp"/>
         <TextView
-            android:id="@+id/name"
-            android:text="전북대 와이파이"
+            android:id="@+id/password"
+            android:text="1234"
             android:layout_marginStart="8dp"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"/>

@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="24dp">
+
+    <EditText
+        android:id="@+id/edit_wifi_name"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="와이파이 이름" />
+
+    <EditText
+        android:id="@+id/edit_wifi_password"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="비밀번호"
+        android:inputType="textPassword"
+        android:layout_marginTop="12dp" />
+
+    <EditText
+        android:id="@+id/edit_wifi_description"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="설명"
+        android:layout_marginTop="12dp" />
+</LinearLayout>
