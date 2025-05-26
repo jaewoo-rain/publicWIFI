@@ -35,6 +35,13 @@ dependencies {
     implementation("com.naver.maps:map-sdk:3.21.0")
     implementation("com.google.android.gms:play-services-location:21.0.1")
 
+    // Retrofit2
+    implementation(libs.retrofit)
+    implementation(libs.converter.gson)
+
+    // Gson
+    implementation(libs.gson)
+
     implementation(libs.appcompat)
     implementation(libs.material)
     implementation(libs.activity)

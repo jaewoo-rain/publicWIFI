@@ -1,6 +1,7 @@
 package com.example.publicwifi;
 
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Button;
@@ -17,6 +18,10 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.FragmentManager;
 
 import com.example.publicwifi.model.WifiData;
+import com.example.publicwifi.retrofit.RetrofitClient;
+import com.example.publicwifi.retrofit.WifiItem;
+import com.example.publicwifi.retrofit.WifiResponse;
+import com.example.publicwifi.retrofit.WifiService;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.naver.maps.geometry.LatLng;
@@ -36,6 +41,10 @@ import com.naver.maps.map.util.FusedLocationSource;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 public class MainActivity extends AppCompatActivity
         implements OnMapReadyCallback {
@@ -123,7 +132,7 @@ public class MainActivity extends AppCompatActivity
          */
 
         this.naverMap = naverMap;
-        addDummyMarkers();
+        addPublicMarkers();
         addUserMarkers();
         naverMap.setLocationSource(locationSource);
         // 기본 트래킹 모드 설정 (권한이 있으면 위치 표시, 없으면 추적 안 함)
@@ -330,44 +339,74 @@ public class MainActivity extends AppCompatActivity
     /**
      * 와이파이 마커 넣기
      */
-    private final List<Marker> dummyMarkers = new ArrayList<>();
+    private final List<Marker> publicMarkers = new ArrayList<>();
     private final List<Marker> userMarkers  = new ArrayList<>();
 
     // 1) 더미 마커만 그리는 메서드
-    private void addDummyMarkers() {
+    private void addPublicMarkers() {
+        OverlayImage icon = OverlayImage.fromResource(R.drawable.wifi);
+
         // 기존 더미 마커 제거
-        for (Marker m : dummyMarkers) m.setMap(null);
-        dummyMarkers.clear();
+        for (Marker m : publicMarkers) m.setMap(null);
+        publicMarkers.clear();
 
         // 화면에 띄울 더미 데이터
-        List<Map<String, Object>> dummy = List.of(
-                Map.of("latitude", 35.80883,   "longitude", 127.14799,  "SSID", "Public WiFi Free", "location", "전주시립도서관 (동완산동)", "manager_center","전주시청","contact","010-1234-4567"),
-                Map.of("latitude", 35.79145,   "longitude", 127.13488,  "SSID", "Public WiFi Free", "location", "평화도서관 (평화동2가)","manager_center","전주시청","contact","010-1234-4567"),
-                Map.of("latitude", 35.8176718, "longitude", 127.1015345,"SSID", "hyoja4",           "location", "우전로 259","manager_center","전주시청","contact","010-1234-4567")
-        );
+        List<Map<String, Object>> publicWifi = new ArrayList<>();
 
-        OverlayImage icon = OverlayImage.fromResource(R.drawable.wifi_photoroom);
-        for (Map<String,Object> item : dummy) {
-            double lat = (Double)item.get("latitude");
-            double lng = (Double)item.get("longitude");
-            Marker m = new Marker();
-            m.setPosition(new LatLng(lat,lng));
-            m.setIcon(icon);
-            m.setWidth(MARKER_SIZE);
-            m.setHeight(MARKER_SIZE);
-            m.setMap(naverMap);
-            m.setOnClickListener(overlay -> {
-                showWifiBottomSheet(
-                        item.get("SSID").toString(), // 와이파이이름
-                        item.get("location").toString(), // 와이파이 주소
-                        item.get("manager_center").toString(),    // 관리기관
-                        "비밀번호 없음",      // 비밀번호
-                        "관리자번호 - "+item.get("contact").toString()        // 관리자 번호
-                );
-                return true;
-            });
-            dummyMarkers.add(m);
-        }
+        // 공공 와이파이 불러오기
+        WifiService wifiService = RetrofitClient.getInstance().create(WifiService.class);
+
+        wifiService.getWifiList().enqueue(new Callback<WifiResponse>() {
+            @Override
+            public void onResponse(Call<WifiResponse> call, Response<WifiResponse> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    List<WifiItem> wifiList = response.body().getWifi();
+
+                    for (WifiItem item : wifiList) {
+                        publicWifi.add(
+                                Map.of("latitude", item.getLatitude(),   "longitude", item.getLongitude(),  "SSID", item.getName(), "location", item.getAddress(), "manager_center",item.getCenter(),"contact",item.getContact()));
+                        Log.d("RETROFIT", "이름: " + item.getName() + ", 주소: " + item.getAddress());
+                    }
+
+                    for (Map<String,Object> item : publicWifi) {
+                        double lat = (Double)item.get("latitude");
+                        double lng = (Double)item.get("longitude");
+                        Marker m = new Marker();
+                        m.setPosition(new LatLng(lat,lng));
+                        m.setIcon(icon);
+                        m.setWidth(MARKER_SIZE);
+                        m.setHeight(MARKER_SIZE);
+                        m.setMap(naverMap);
+                        m.setOnClickListener(overlay -> {
+                            showWifiBottomSheet(
+                                    item.get("SSID").toString(), // 와이파이이름
+                                    item.get("location").toString(), // 와이파이 주소
+                                    item.get("manager_center").toString(),    // 관리기관
+                                    "비밀번호 없음",      // 비밀번호
+                                    "관리자번호 - "+item.get("contact").toString()        // 관리자 번호
+                            );
+                            return true;
+                        });
+                        publicMarkers.add(m);
+                    }
+
+                    Toast.makeText(MainActivity.this, "성공적으로 데이터를 불러왔습니다!", Toast.LENGTH_SHORT).show();
+                } else {
+                    Log.e("RETROFIT", "응답 실패 - 코드: " + response.code());
+                    Toast.makeText(MainActivity.this, "응답 실패", Toast.LENGTH_SHORT).show();
+                }
+            }
+
+            @Override
+            public void onFailure(Call<WifiResponse> call, Throwable t) {
+                Log.e("RETROFIT", "요청 실패: " + t.getMessage(), t);
+                Toast.makeText(MainActivity.this, "서버 연결 실패", Toast.LENGTH_SHORT).show();
+            }
+        });
+
+
+
+
     }
 
     // 2) 사용자 마커만 그리는 메서드
@@ -378,7 +417,7 @@ public class MainActivity extends AppCompatActivity
         }
         userMarkers.clear();
 
-        OverlayImage icon = OverlayImage.fromResource(R.drawable.wifi_removebg);
+        OverlayImage icon = OverlayImage.fromResource(R.drawable.wifi);
         for (WifiData w : myHelper.getAllWifi()) {
             Marker m = new Marker();
             m.setPosition(new LatLng(w.latitude,w.longitude));
@@ -387,7 +426,7 @@ public class MainActivity extends AppCompatActivity
             m.setHeight(MARKER_SIZE);
             m.setMap(naverMap);
             m.setOnClickListener(o -> {
-                showWifiBottomSheet(w.name, w.description, "사용자 등록", w.password, w.name);
+                showWifiBottomSheet(w.name, w.address, "없음", w.password, w.description);
                 return true;
             });
             userMarkers.add(m);
@@ -450,14 +489,16 @@ public class MainActivity extends AppCompatActivity
         EditText inputName = dialogView.findViewById(R.id.edit_wifi_name);
         EditText inputPassword = dialogView.findViewById(R.id.edit_wifi_password);
         EditText inputDescription = dialogView.findViewById(R.id.edit_wifi_description);
+        EditText inputAdress = dialogView.findViewById(R.id.edit_wifi_address);
 
         builder.setPositiveButton("저장", (dialog, which) -> {
             String wifiName = inputName.getText().toString();
             String password = inputPassword.getText().toString();
             String description = inputDescription.getText().toString();
+            String address = inputAdress.getText().toString();
 
             MyDBHelper dbHelper = new MyDBHelper(this);
-            dbHelper.saveWifi(wifiName, password, lat, lng, description);
+            dbHelper.saveWifi(wifiName, password, lat, lng, description, address);
 
             Toast.makeText(this, "와이파이 저장됨!", Toast.LENGTH_SHORT).show();
 
@@ -465,12 +506,12 @@ public class MainActivity extends AppCompatActivity
             if (naverMap != null) {
                 Marker newMarker = new Marker();
                 newMarker.setPosition(new LatLng(lat, lng));
-                newMarker.setIcon(OverlayImage.fromResource(R.drawable.wifi_removebg));
+                newMarker.setIcon(OverlayImage.fromResource(R.drawable.wifi));
                 newMarker.setWidth(MARKER_SIZE);
                 newMarker.setHeight(MARKER_SIZE);
                 // 클릭 시 BottomSheet 띄우는 로직도 동일하게
                 newMarker.setOnClickListener(overlay -> {
-                    showWifiBottomSheet(wifiName, description, "스피드", password, wifiName);
+                    showWifiBottomSheet(wifiName, address, "없음", password, description);
                     return true;
                 });
                 newMarker.setMap(naverMap);

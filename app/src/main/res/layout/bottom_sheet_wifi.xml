@@ -30,7 +30,7 @@
         android:layout_height="wrap_content"
         >
         <ImageView
-            android:src="@drawable/wifi_photoroom"
+            android:src="@drawable/wifi"
             android:layout_width="30dp"
             android:layout_height="30dp"/>
         <TextView
@@ -48,7 +48,7 @@
         android:layout_height="wrap_content"
         >
         <ImageView
-            android:src="@drawable/wifi_photoroom"
+            android:src="@drawable/wifi"
             android:layout_width="30dp"
             android:layout_height="30dp"/>
         <TextView
@@ -65,7 +65,7 @@
         android:layout_height="wrap_content"
         >
         <ImageView
-            android:src="@drawable/wifi_photoroom"
+            android:src="@drawable/wifi"
             android:layout_width="30dp"
             android:layout_height="30dp"/>
         <TextView

@@ -24,6 +24,7 @@ public class MyDBHelper extends SQLiteOpenHelper {
                 "password TEXT," +
                 "latitude REAL," +
                 "longitude REAL," +
+                "address TEXT," +
                 "descript TEXT)");
     }
 
@@ -36,10 +37,10 @@ public class MyDBHelper extends SQLiteOpenHelper {
     /**
      * 저장하기
      */
-    public void saveWifi(String wifiName, String password, double latitude, double longitude, String descript) {
+    public void saveWifi(String wifiName, String password, double latitude, double longitude, String descript, String address) {
         SQLiteDatabase db = getWritableDatabase();
-        String sql = "INSERT INTO myDiary (wifiName, password, latitude, longitude, descript) VALUES (?, ?, ?, ?, ?)";
-        db.execSQL(sql, new Object[]{wifiName, password, latitude, longitude, descript});
+        String sql = "INSERT INTO myDiary (wifiName, password, latitude, longitude, descript, address) VALUES (?, ?, ?, ?, ?,?)";
+        db.execSQL(sql, new Object[]{wifiName, password, latitude, longitude, descript, address});
         db.close();
     }
 
@@ -67,7 +68,7 @@ public class MyDBHelper extends SQLiteOpenHelper {
     public List<WifiData> getAllWifi() {
         List<WifiData> list = new ArrayList<>();
         SQLiteDatabase db = getReadableDatabase();
-        Cursor cursor = db.rawQuery("SELECT id, wifiName, descript, latitude, longitude, password FROM myDiary", null);
+        Cursor cursor = db.rawQuery("SELECT id, wifiName, descript, latitude, longitude, password, address FROM myDiary", null);
         while (cursor.moveToNext()) {
             int id = cursor.getInt(0);
             String name = cursor.getString(1);
@@ -75,7 +76,8 @@ public class MyDBHelper extends SQLiteOpenHelper {
             double lat = cursor.getDouble(3);
             double lng = cursor.getDouble(4);
             String password = cursor.getString(5);
-            list.add(new WifiData(id, name, desc, lat, lng, password));
+            String address = cursor.getString(6);
+            list.add(new WifiData(id, name, desc, lat, lng, password, address));
         }
         cursor.close();
         db.close();
