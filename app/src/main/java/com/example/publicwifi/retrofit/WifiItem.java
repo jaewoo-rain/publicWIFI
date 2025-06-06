@@ -18,7 +18,6 @@ public class WifiItem {
         return name;
     }
 
-
     public String getAddress() {
         return address;
     }
